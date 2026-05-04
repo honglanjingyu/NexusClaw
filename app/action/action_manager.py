@@ -1,3 +1,4 @@
+# app/action/action_manager.py
 """行动管理器 - 统一管理行动模块"""
 
 from typing import List, Dict, Any, Optional, AsyncGenerator
@@ -23,7 +24,6 @@ class ActionManager:
     def __init__(self):
         self.executor: ActionExecutor = get_action_executor()
         self.tool_registry: ToolRegistry = get_tool_registry()
-        # 延迟初始化输出生成器
         self._output_generator = None
         logger.info("ActionManager 初始化完成")
 
@@ -44,22 +44,19 @@ class ActionManager:
         self.tool_registry.register_tools(tools)
 
     def register_builtin_tools(self) -> None:
-        """注册内置工具"""
-        from app.action.tools import (
-            get_current_time,
-            search_knowledge,
-            search_knowledge_with_filter,
-            get_knowledge_stats,
-            add_to_knowledge
-        )
+        """
+        注册内置工具 - 自动发现并注册 tools 目录下的所有工具
+        """
+        from app.action.tools import discover_tools
 
-        self.register_tools([
-            get_current_time,
-            search_knowledge,
-            search_knowledge_with_filter,
-            get_knowledge_stats,
-            add_to_knowledge
-        ])
+        tools = discover_tools()
+
+        if not tools:
+            logger.warning("未发现任何内置工具")
+            return
+
+        self.register_tools(tools)
+        logger.info(f"已自动注册 {len(tools)} 个内置工具: {[t.__name__ for t in tools]}")
 
     def list_tools(self) -> List[str]:
         """列出所有已注册的工具"""
@@ -76,7 +73,7 @@ class ActionManager:
             session_id: str = ""
     ) -> str:
         """执行单个工具调用"""
-        return await self.tool_registry.execute(tool_name, tool_input)
+        return await self.tool_registry.execute(tool_name, tool_input, session_id)
 
     async def execute_actions(
             self,
