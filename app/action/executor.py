@@ -90,9 +90,11 @@ class ActionExecutor:
             session_id: str
     ) -> str:
         """执行工具调用"""
+        # 传递 session_id
         return await self.tool_registry.execute(
             tool_name=tool_call.name,
-            input_data=tool_call.input
+            input_data=tool_call.input,
+            session_id=session_id
         )
 
     async def generate_output(

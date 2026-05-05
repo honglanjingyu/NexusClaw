@@ -118,6 +118,8 @@ class BrainManager:
         logger.info(f"[会话 {session_id}] 大脑思考完成")
         return response
 
+    # app/brain/brain_manager.py
+
     async def think_stream(
             self,
             user_input: str,
@@ -127,19 +129,9 @@ class BrainManager:
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         大脑思考入口（流式）
-
-        Yields:
-            事件字典:
-            - {"type": "plan", "data": {"steps": [...]}}
-            - {"type": "step_start", "data": {"step": "..."}}
-            - {"type": "tool_call", "data": {"tool": "...", "input": {...}}}
-            - {"type": "step_complete", "data": {"step": "...", "result": "..."}}
-            - {"type": "response_chunk", "data": "..."}
-            - {"type": "complete", "data": {...}}
         """
         logger.info(f"[会话 {session_id}] 大脑开始思考（流式）: {user_input[:100]}...")
 
-        # 初始化工作流（不需要传递 tools_map）
         workflow = BrainWorkflow(
             planner=self.planner,
             executor=self.executor,
@@ -147,7 +139,7 @@ class BrainManager:
             session_id=session_id
         )
 
-        # 流式执行工作流
+        # 直接传递事件，不做额外处理
         async for event in workflow.run_stream(
                 user_input=user_input,
                 perception_context=perception_context or {},

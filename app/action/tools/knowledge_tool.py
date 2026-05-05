@@ -1,11 +1,10 @@
-# app/action/tools/knowledge_tool.py - 重构后
+# app/action/tools/knowledge_tool.py
 """知识库工具 - 从记忆模块的知识库检索信息"""
 
 from typing import Optional
 from loguru import logger
-from datetime import datetime  # 确保这个导入在文件顶部
+from datetime import datetime
 
-# 使用记忆模块的长期记忆
 from app.memory.long_term_memory import LongTermMemory
 from app.memory.milvus_store import MilvusVectorStore
 
@@ -28,9 +27,9 @@ def get_long_term_memory():
     return _long_term_memory
 
 
-async def search_knowledge(query: str, top_k: int = 3) -> str:
+async def search_knowledge(query: str, top_k: int = 3, session_id: str = "") -> str:
     """从知识库中搜索相关信息"""
-    logger.info(f"知识库搜索: query='{query}', top_k={top_k}")
+    logger.info(f"[会话 {session_id}] 知识库搜索: query='{query}', top_k={top_k}")
 
     long_memory = get_long_term_memory()
     if long_memory is None:
@@ -70,16 +69,18 @@ async def search_knowledge(query: str, top_k: int = 3) -> str:
 async def search_knowledge_with_filter(
         query: str,
         category: Optional[str] = None,
-        top_k: int = 3
+        top_k: int = 3,
+        session_id: str = ""
 ) -> str:
     """从知识库中搜索（支持分类过滤）"""
+    logger.info(f"[会话 {session_id}] 知识库过滤搜索: query='{query}', category={category}, top_k={top_k}")
+
     long_memory = get_long_term_memory()
 
     if long_memory is None:
         return "知识库服务不可用"
 
     try:
-        # 先多检索一些，然后过滤
         results = await long_memory.retrieve(query, top_k=top_k * 2, enable_rerank=False)
 
         if category:
@@ -111,8 +112,10 @@ async def search_knowledge_with_filter(
         return f"知识库搜索出错: {str(e)}"
 
 
-async def get_knowledge_stats() -> str:
+async def get_knowledge_stats(session_id: str = "") -> str:
     """获取知识库统计信息"""
+    logger.info(f"[会话 {session_id}] 获取知识库统计")
+
     long_memory = get_long_term_memory()
 
     if long_memory is None:
@@ -137,15 +140,16 @@ async def get_knowledge_stats() -> str:
         return f"获取知识库统计出错: {str(e)}"
 
 
-async def add_to_knowledge(content: str, category: str = "general", source: str = "user") -> str:
+async def add_to_knowledge(content: str, category: str = "general", source: str = "user", session_id: str = "") -> str:
     """添加知识到知识库"""
+    logger.info(f"[会话 {session_id}] 添加知识: category={category}, source={source}")
+
     long_memory = get_long_term_memory()
 
     if long_memory is None:
         return "知识库服务不可用"
 
     try:
-        import uuid
         success = await long_memory.add_knowledge(
             content=content,
             metadata={
@@ -163,6 +167,3 @@ async def add_to_knowledge(content: str, category: str = "general", source: str 
     except Exception as e:
         logger.error(f"添加知识失败: {e}")
         return f"添加知识出错: {str(e)}"
-
-
-from datetime import datetime

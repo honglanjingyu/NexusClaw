@@ -1,18 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="5e8acab2-1f0a-4ddd-82c1-d58e7ac753d3" name="更改" comment="记忆模块">
-      <change afterPath="$PROJECT_DIR$/app/examples/main/demo_search.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/examples/main/fix_time_tool.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/添加新工具的方法.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+    <list default="true" id="5e8acab2-1f0a-4ddd-82c1-d58e7ac753d3" name="更改" comment="初始测试使用">
+      <change afterPath="$PROJECT_DIR$/app/api/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/api/dependencies.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/api/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/api/routes.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/run_api.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/app.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/style.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/action/action_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/action/action_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/action/tools/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/action/tools/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/action/executor.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/action/executor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/action/tool_registry.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/action/tool_registry.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/action/tools/knowledge_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/action/tools/knowledge_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/brain/executor.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/brain/executor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/action/tools/search_tool.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/action/tools/search_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/action/tools/search_tool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/action/tools/time_tool.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/action/tools/time_tool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/brain/brain_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/brain/brain_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/brain/llm_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/brain/llm_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/brain/replanner.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/brain/replanner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/brain/workflow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/brain/workflow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/action/demo_action.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/action/demo_action_simple.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/brain/demo_brain.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/brain/demo_brain_test_tools.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/brain/demo_llm.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/brain/demo_milvus_knowledge.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/main/demo_search.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/main/fix_time_tool.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/memory/demo_long_memory.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/memory/demo_memory.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/memory/demo_short_and_work_memory.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/perception/demo_milvus.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/examples/perception/demo_perception.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,6 +86,7 @@
     "Python 测试.Python 测试 (main.py 内).executor": "Run",
     "Python 测试.Python 测试 (test_perception.py 内).executor": "Run",
     "Python 测试.Python 测试 (test_search.py 内).executor": "Run",
+    "Python.demo.executor": "Run",
     "Python.demo_action.executor": "Run",
     "Python.demo_action_simple.executor": "Run",
     "Python.demo_brain.executor": "Run",
@@ -78,8 +100,10 @@
     "Python.demo_search.executor": "Run",
     "Python.demo_short_and_work_memory.executor": "Run",
     "Python.demo_short_memory.executor": "Run",
+    "Python.fix.executor": "Run",
     "Python.fix_time_tool.executor": "Run",
     "Python.main.executor": "Run",
+    "Python.run_api.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
@@ -122,7 +146,11 @@
       <workItem from="1777785773443" duration="7498000" />
       <workItem from="1777793898103" duration="2954000" />
       <workItem from="1777805508168" duration="4851000" />
-      <workItem from="1777890396365" duration="3667000" />
+      <workItem from="1777890396365" duration="4187000" />
+      <workItem from="1777896757611" duration="338000" />
+      <workItem from="1777949912695" duration="1649000" />
+      <workItem from="1777957889011" duration="3704000" />
+      <workItem from="1777961783489" duration="1031000" />
     </task>
     <task id="LOCAL-00001" summary="感知模块+Milvus">
       <option name="closed" value="true" />
@@ -156,7 +184,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777810367872</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="初始测试使用">
+      <option name="closed" value="true" />
+      <created>1777894423247</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1777894423247</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -167,7 +203,8 @@
     <MESSAGE value="大脑模块" />
     <MESSAGE value="行动模块" />
     <MESSAGE value="记忆模块" />
-    <option name="LAST_COMMIT_MESSAGE" value="记忆模块" />
+    <MESSAGE value="初始测试使用" />
+    <option name="LAST_COMMIT_MESSAGE" value="初始测试使用" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Nexus$demo_memory.coverage" NAME="demo_memory 覆盖结果" MODIFIED="1777808466475" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples/memory" />
@@ -176,9 +213,12 @@
     <SUITE FILE_PATH="coverage/Nexus$demo_short_memory.coverage" NAME="demo_short_memory 覆盖结果" MODIFIED="1777808356215" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples/memory" />
     <SUITE FILE_PATH="coverage/Nexus$demo_short_and_work_memory.coverage" NAME="demo_short_and_work_memory 覆盖结果" MODIFIED="1777809104714" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples/memory" />
     <SUITE FILE_PATH="coverage/Nexus$demo_long_memory.coverage" NAME="demo_long_memory 覆盖结果" MODIFIED="1777809177331" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples/memory" />
+    <SUITE FILE_PATH="coverage/Nexus$demo.coverage" NAME="demo 覆盖结果" MODIFIED="1777962061541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Nexus$demo_action.coverage" NAME="demo_action 覆盖结果" MODIFIED="1777796152464" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples/action" />
     <SUITE FILE_PATH="coverage/Nexus$main.coverage" NAME="main 覆盖结果" MODIFIED="1777893911159" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Nexus$run_api.coverage" NAME="run_api 覆盖结果" MODIFIED="1777962133683" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Nexus$demo_action_simple.coverage" NAME="demo_action_simple 覆盖结果" MODIFIED="1777809197656" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples/action" />
+    <SUITE FILE_PATH="coverage/Nexus$fix.coverage" NAME="fix 覆盖结果" MODIFIED="1777961396452" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Nexus$demo_llm.coverage" NAME="demo_llm 覆盖结果" MODIFIED="1777790644986" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples" />
     <SUITE FILE_PATH="coverage/Nexus$demo_milvus_knowledge.coverage" NAME="demo_milvus_knowledge 覆盖结果" MODIFIED="1777796602515" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples/brain" />
     <SUITE FILE_PATH="coverage/Nexus$demo_search.coverage" NAME="demo_search 覆盖结果" MODIFIED="1777893374194" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/examples/main" />

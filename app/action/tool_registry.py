@@ -187,7 +187,8 @@ class ToolRegistry:
     async def execute(
             self,
             tool_name: str,
-            input_data: Dict[str, Any]
+            input_data: Dict[str, Any],
+            session_id: str = ""  # 添加 session_id 参数
     ) -> str:
         """
         执行工具调用
@@ -195,6 +196,7 @@ class ToolRegistry:
         Args:
             tool_name: 工具名称
             input_data: 工具参数
+            session_id: 会话ID
 
         Returns:
             str: 工具执行结果
@@ -207,13 +209,13 @@ class ToolRegistry:
             return error_msg
 
         try:
-            logger.info(f"执行工具: {tool_name}, 参数: {input_data}")
+            logger.info(f"执行工具: {tool_name}, 参数: {input_data}, session_id: {session_id}")
 
-            result = await tool.handler(**input_data)
+            # 调用工具函数，传递 session_id（如果工具函数支持）
+            result = await tool.handler(**input_data, session_id=session_id)
 
             # 处理不同类型的结果
             if isinstance(result, tuple) and len(result) == 2:
-                # response_format="content_and_artifact" 的情况
                 result = result[0]
             elif hasattr(result, 'content'):
                 result = result.content
@@ -221,15 +223,30 @@ class ToolRegistry:
             logger.info(f"工具 '{tool_name}' 执行成功")
             return str(result)
 
+        except TypeError as e:
+            # 如果工具不支持 session_id 参数，尝试不传递
+            if "unexpected keyword argument 'session_id'" in str(e):
+                logger.warning(f"工具 '{tool_name}' 不支持 session_id 参数，尝试不带参数调用")
+                try:
+                    result = await tool.handler(**input_data)
+                    if isinstance(result, tuple) and len(result) == 2:
+                        result = result[0]
+                    elif hasattr(result, 'content'):
+                        result = result.content
+                    return str(result)
+                except Exception as e2:
+                    error_msg = f"工具 '{tool_name}' 执行失败: {str(e2)}"
+                    logger.error(error_msg)
+                    return error_msg
+            else:
+                error_msg = f"工具 '{tool_name}' 执行失败: {str(e)}"
+                logger.error(error_msg)
+                return error_msg
+
         except Exception as e:
             error_msg = f"工具 '{tool_name}' 执行失败: {str(e)}"
             logger.error(error_msg)
             return error_msg
-
-    def clear(self):
-        """清空所有工具"""
-        self._tools.clear()
-        logger.info("ToolRegistry 已清空")
 
 
 # 全局单例

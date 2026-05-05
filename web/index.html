@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AI Agent 智能助手</title>
+    <!-- 修改这里：添加 /static/ 前缀 -->
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-robot"></i>
+                    <span>AI Agent</span>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-actions">
+                <button class="btn-new-chat" id="newChatBtn">
+                    <i class="fas fa-plus"></i>
+                    <span>新对话</span>
+                </button>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="section-title">
+                    <i class="fas fa-history"></i>
+                    <span>对话历史</span>
+                </div>
+                <div class="chat-history-list" id="chatHistoryList">
+                    <div class="empty-history">暂无历史对话</div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="system-status" id="systemStatus">
+                    <i class="fas fa-circle" id="statusIcon"></i>
+                    <span id="statusText">检查中...</span>
+                </div>
+                <button class="btn-clear-all" id="clearAllBtn">
+                    <i class="fas fa-trash-alt"></i>
+                    <span>清空所有会话</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="main-header">
+                <button class="menu-btn" id="menuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-info">
+                    <span class="session-id" id="sessionIdDisplay">会话: --</span>
+                    <button class="btn-copy-session" id="copySessionBtn" title="复制会话ID">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" id="knowledgeBtn" title="知识库管理">
+                        <i class="fas fa-database"></i>
+                    </button>
+                    <button class="btn-icon" id="statsBtn" title="系统状态">
+                        <i class="fas fa-chart-line"></i>
+                    </button>
+                    <button class="btn-icon" id="settingsBtn" title="设置">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="chat-container">
+                <div class="messages-area" id="messagesArea">
+                    <div class="welcome-message">
+                        <div class="welcome-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h2>你好！我是 AI Agent</h2>
+                        <p>我可以帮你回答问题、搜索知识、处理任务。试试问我：</p>
+                        <div class="suggestion-chips">
+                            <button class="suggestion-chip" data-msg="现在几点了？">
+                                <i class="fas fa-clock"></i> 现在几点了？
+                            </button>
+                            <button class="suggestion-chip" data-msg="介绍一下 RAG 技术">
+                                <i class="fas fa-brain"></i> 介绍一下 RAG 技术
+                            </button>
+                            <button class="suggestion-chip" data-msg="如何排查 CPU 告警问题？">
+                                <i class="fas fa-chart-line"></i> 如何排查 CPU 告警？
+                            </button>
+                            <button class="suggestion-chip" data-msg="知识库里有什么内容？">
+                                <i class="fas fa-database"></i> 知识库里有什么？
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="input-container">
+                        <textarea
+                            id="messageInput"
+                            placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"
+                            rows="1"
+                        ></textarea>
+                        <button class="btn-send" id="sendBtn" title="发送">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="input-footer">
+                        <span class="input-tip">
+                            <i class="fas fa-microphone"></i> 支持流式响应
+                        </span>
+                        <span class="input-tip" id="charCount">0 字符</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 知识库管理模态框 -->
+    <div class="modal" id="knowledgeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-database"></i> 知识库管理</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="knowledge-stats">
+                    <div class="stat-card">
+                        <span class="stat-label">文档数量</span>
+                        <span class="stat-value" id="docCount">--</span>
+                    </div>
+                </div>
+                <div class="knowledge-add">
+                    <h4>添加知识</h4>
+                    <textarea id="knowledgeContent" placeholder="输入知识内容..." rows="4"></textarea>
+                    <div class="knowledge-add-options">
+                        <input type="text" id="knowledgeCategory" placeholder="分类 (默认: general)">
+                        <button id="addKnowledgeBtn" class="btn-primary">添加</button>
+                    </div>
+                </div>
+                <div class="knowledge-search">
+                    <h4>搜索知识</h4>
+                    <div class="search-box">
+                        <input type="text" id="knowledgeQuery" placeholder="输入搜索关键词...">
+                        <button id="searchKnowledgeBtn"><i class="fas fa-search"></i></button>
+                    </div>
+                    <div class="knowledge-results" id="knowledgeResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态模态框 -->
+    <div class="modal" id="statsModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3><i class="fas fa-chart-line"></i> 系统状态</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-item">
+                        <span class="stat-label">初始化状态</span>
+                        <span class="stat-value" id="initStatus">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">当前会话</span>
+                        <span class="stat-value" id="statSessionId">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">可用工具</span>
+                        <span class="stat-value" id="toolCount">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">短期记忆</span>
+                        <span class="stat-value" id="shortTermCount">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">工作记忆</span>
+                        <span class="stat-value" id="workingCount">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">长期记忆</span>
+                        <span class="stat-value" id="longTermCount">--</span>
+                    </div>
+                </div>
+                <div class="tools-list">
+                    <h4>可用工具</h4>
+                    <div id="toolsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> 设置</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="streamToggle" checked>
+                        <span>启用流式响应</span>
+                    </label>
+                    <p class="setting-desc">开启后，消息将逐字显示，体验更流畅</p>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="autoScrollToggle" checked>
+                        <span>自动滚动到最新消息</span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>API 地址</label>
+                    <input type="text" id="apiUrl" value="/api/v1" placeholder="/api/v1">
+                </div>
+                <button id="testConnectionBtn" class="btn-secondary">测试连接</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改这里：JS 也添加 /static/ 前缀 -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

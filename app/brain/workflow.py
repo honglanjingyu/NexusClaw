@@ -1,6 +1,7 @@
 # app/brain/workflow.py
 """Plan-Execute-Replan 工作流"""
 
+import asyncio
 from typing import Dict, Any, List, Optional, AsyncGenerator
 from loguru import logger
 
@@ -102,9 +103,6 @@ class BrainWorkflow:
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         运行工作流（流式）
-
-        Yields:
-            事件字典
         """
         # 初始化状态
         state = BrainState(
@@ -156,9 +154,14 @@ class BrainWorkflow:
                 state.response = update["response"]
                 state.phase = BrainPhase.RESPONDING
 
-                # 流式输出响应
+                # 流式输出响应 - 发送开始标记
                 yield {"type": "response_start"}
-                yield {"type": "response_chunk", "data": state.response}
+
+                # 使用真正的流式生成
+                async for chunk in self.replanner._generate_response_stream(state, self.session_id):
+                    if chunk:
+                        yield {"type": "response_chunk", "data": chunk}
+
                 yield {"type": "response_end"}
                 break
             elif "plan" in update:
@@ -172,9 +175,15 @@ class BrainWorkflow:
 
         # 确保有响应
         if not state.response:
-            update = await self.replanner._generate_response(state, self.session_id)
-            state.response = update.get("response", "抱歉，我无法生成有效的回答。")
-            yield {"type": "response_chunk", "data": state.response}
+            state.phase = BrainPhase.RESPONDING
+            yield {"type": "response_start"}
+
+            # 使用真正的流式生成
+            async for chunk in self.replanner._generate_response_stream(state, self.session_id):
+                if chunk:
+                    yield {"type": "response_chunk", "data": chunk}
+
+            yield {"type": "response_end"}
 
         # 完成事件
         yield {

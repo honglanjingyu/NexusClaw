@@ -66,6 +66,8 @@ class ActionManager:
         """获取工具描述（用于 LLM Prompt）"""
         return self.tool_registry.get_tools_description()
 
+    # app/action/action_manager.py
+
     async def execute_tool_call(
             self,
             tool_name: str,
@@ -73,7 +75,12 @@ class ActionManager:
             session_id: str = ""
     ) -> str:
         """执行单个工具调用"""
-        return await self.tool_registry.execute(tool_name, tool_input, session_id)
+        # 传递 session_id 给 tool_registry
+        return await self.tool_registry.execute(
+            tool_name=tool_name,
+            input_data=tool_input,
+            session_id=session_id
+        )
 
     async def execute_actions(
             self,

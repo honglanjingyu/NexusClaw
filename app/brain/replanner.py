@@ -2,7 +2,7 @@
 """重规划器 - 根据执行结果反思并调整计划"""
 
 import asyncio
-from typing import List, Dict, Any
+from typing import List, Dict, Any, AsyncGenerator
 from langchain_core.messages import SystemMessage, HumanMessage
 from pydantic import BaseModel, Field
 from loguru import logger
@@ -203,3 +203,44 @@ class Replanner:
             lines.append("")
 
         return "\n".join(lines)
+
+    # app/brain/replanner.py - 添加新方法
+
+    async def _generate_response_stream(
+            self,
+            state: BrainState,
+            session_id: str
+    ) -> AsyncGenerator[str, None]:
+        """生成最终响应（真正的流式）"""
+        logger.info(f"[会话 {session_id}] 生成流式响应")
+
+        # 格式化执行历史
+        history_summary = self._format_history_with_results(state.past_steps)
+
+        if not history_summary:
+            response_prompt = f"请回答用户的问题：{state.input}"
+        else:
+            response_prompt = f"""
+    ## 原始任务
+    {state.input}
+
+    ## 执行过程和结果
+    {history_summary}
+
+    ## 任务
+    请根据以上执行结果，生成一个全面、清晰的最终响应。
+    """
+
+        messages = [
+            SystemMessage(content="你是一个专业的AI助手，请根据提供的信息生成清晰、准确的回答。"),
+            HumanMessage(content=response_prompt)
+        ]
+
+        try:
+            # 使用真正的流式调用
+            async for chunk in self.llm.stream(messages):
+                if chunk:
+                    yield chunk
+        except Exception as e:
+            logger.error(f"[会话 {session_id}] 生成流式响应失败: {e}")
+            yield f"处理您的请求时出现问题: {str(e)}"
