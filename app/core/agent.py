@@ -47,6 +47,8 @@ class Agent:
         """设置会话管理器"""
         self._session_manager = session_manager
 
+    # app/core/agent.py - 修改 initialize 方法中的会话设置
+
     async def initialize(self) -> bool:
         if self._initialized:
             return True
@@ -76,13 +78,25 @@ class Agent:
             self._perception_manager = PerceptionManager(vector_store_manager=vector_store)
             logger.info("感知模块初始化完成")
 
+            # 修复：只有当 memory_manager 存在且有效时才设置会话
             if self._session_manager:
                 self._current_session_id = self._session_manager.get_or_create()
             else:
                 self._current_session_id = str(uuid.uuid4())[:8]
 
+            # 设置会话到记忆管理器
             if self._memory_manager:
-                self._memory_manager.set_session(self._current_session_id)
+                try:
+                    # 确保 Redis 会话存在
+                    if hasattr(self._memory_manager, '_redis_memory') and self._memory_manager._redis_memory:
+                        existing = self._memory_manager._redis_memory.get_session_info(self._current_session_id)
+                        if not existing:
+                            self._current_session_id = self._memory_manager._redis_memory.get_or_create_session(
+                                user_id="default"
+                            )
+                    self._memory_manager.set_session(self._current_session_id)
+                except Exception as e:
+                    logger.warning(f"设置会话到记忆管理器失败: {e}")
 
             self._initialized = True
 

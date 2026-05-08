@@ -1,0 +1,46 @@
+/* 全局样式 - 变量、重置、基础 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #818cf8;
+    --secondary-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --dark-bg: #1a1a2e;
+    --dark-card: #16213e;
+    --dark-sidebar: #0f0f23;
+    --dark-text: #e2e8f0;
+    --dark-text-secondary: #94a3b8;
+    --light-bg: #f8fafc;
+    --light-card: #ffffff;
+    --light-sidebar: #f1f5f9;
+    --light-text: #1e293b;
+    --light-text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --transition: all 0.2s ease;
+}
+
+/* 暗色主题（默认） */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--dark-bg);
+    color: var(--dark-text);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}

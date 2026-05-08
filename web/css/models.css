@@ -1,0 +1,259 @@
+/* 模态框样式 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--dark-card);
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-small {
+    max-width: 500px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--dark-text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--dark-text);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(80vh - 60px);
+}
+
+/* 知识库管理样式 */
+.knowledge-stats {
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.knowledge-add h4, .knowledge-search h4 {
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+}
+
+.knowledge-add textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    color: var(--dark-text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    resize: vertical;
+}
+
+.knowledge-add-options {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.knowledge-add-options input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    color: var(--dark-text);
+}
+
+.search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.search-box input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    color: var(--dark-text);
+}
+
+.search-box button {
+    background: var(--primary-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0 16px;
+    color: white;
+    cursor: pointer;
+}
+
+.knowledge-results {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.knowledge-result-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.knowledge-result-item .content {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+}
+
+.knowledge-result-item .meta {
+    font-size: 0.7rem;
+    color: var(--dark-text-secondary);
+}
+
+/* 统计网格 */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+}
+
+.stat-item .stat-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--dark-text-secondary);
+    margin-bottom: 6px;
+}
+
+.stat-item .stat-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.tools-list h4 {
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+}
+
+#toolsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tool-badge {
+    background: rgba(99, 102, 241, 0.2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-family: monospace;
+}
+
+/* 设置面板 */
+.setting-item {
+    margin-bottom: 20px;
+}
+
+.setting-item label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 6px;
+}
+
+.setting-item input[type="text"] {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    color: var(--dark-text);
+    margin-top: 6px;
+}
+
+.setting-desc {
+    font-size: 0.7rem;
+    color: var(--dark-text-secondary);
+    margin-left: 24px;
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--dark-text);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary {
+    padding: 10px 20px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: white;
+    cursor: pointer;
+}

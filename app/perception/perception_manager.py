@@ -89,6 +89,7 @@ class PerceptionManager:
             long_term_items = await self._memory_manager.retrieve_long_term(
                 query=input_text,
                 top_k=top_k,
+                filter_metadata=None,
                 enable_rerank=True
             )
 
@@ -169,6 +170,7 @@ class PerceptionManager:
             long_term_items = await self._memory_manager.retrieve_long_term(
                 query=input_data.content[:500],
                 top_k=top_k,
+                filter_metadata=None,
                 enable_rerank=True
             )
 
@@ -209,10 +211,12 @@ class PerceptionManager:
             user_input: str,
             assistant_output: str
     ):
-        """将对话添加到记忆"""
-        # 注意：需要确保当前会话已设置
-        self._memory_manager.add_user_message(user_input)
-        self._memory_manager.add_assistant_message(assistant_output)
+        """将对话添加到短期记忆（不保存到 Redis）"""
+        # 只添加到短期记忆，不保存到 Redis（避免重复）
+        # 因为 routes.py 已经保存到 Redis 了
+        self._memory_manager._short_term.add_user_message(user_input)
+        self._memory_manager._short_term.add_assistant_message(assistant_output)
+        logger.debug(f"添加对话到短期记忆: {user_input[:50]}...")
 
     def add_to_working_memory(self, key: str, value: Any):
         """添加到工作记忆"""

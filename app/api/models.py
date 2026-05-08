@@ -85,3 +85,21 @@ class HealthResponse(BaseModel):
     status: str
     initialized: bool
     timestamp: str
+
+# app/api/models.py (添加新模型)
+
+class SessionInfoResponse(BaseModel):
+    """会话信息响应"""
+    success: bool
+    session_id: str
+    info: Optional[Dict[str, Any]] = None
+    message: Optional[str] = None
+
+
+class SessionHistoryResponse(BaseModel):
+    """会话历史响应"""
+    success: bool
+    session_id: str
+    message_count: int
+    messages: List[Dict[str, Any]]
+    error: Optional[str] = None

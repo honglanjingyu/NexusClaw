@@ -1,0 +1,74 @@
+/* 输入区域样式 */
+.input-area {
+    padding: 20px 24px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--dark-bg);
+}
+
+.input-container {
+    display: flex;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 40px;
+    padding: 8px 8px 8px 20px;
+    transition: var(--transition);
+}
+
+.input-container:focus-within {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.input-container textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--dark-text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: none;
+    outline: none;
+    padding: 10px 0;
+    max-height: 150px;
+}
+
+.input-container textarea::placeholder {
+    color: var(--dark-text-secondary);
+}
+
+.btn-send {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-send:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.btn-send:disabled {
+    background: var(--dark-text-secondary);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.input-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 0 12px;
+}
+
+.input-tip {
+    font-size: 0.7rem;
+    color: var(--dark-text-secondary);
+}

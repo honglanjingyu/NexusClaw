@@ -1,5 +1,4 @@
-# run_api.py - 修改日志配置
-"""FastAPI 服务启动入口 - 支持 MCP"""
+# run_api.py - 完整修复版
 
 import sys
 from pathlib import Path
@@ -10,20 +9,18 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from loguru import logger
 
 # ============================================================
-# 日志配置：只输出到文件，控制台只显示用户交互
+# 日志配置
 # ============================================================
 
-# 创建日志目录
 LOG_DIR = Path("logs")
 LOG_DIR.mkdir(exist_ok=True)
 
-# 移除所有默认处理器
 logger.remove()
-
 logger.add(
     LOG_DIR / "debug_{time:YYYY-MM-DD}.log",
     rotation="1 day",
@@ -34,27 +31,21 @@ logger.add(
 )
 
 
-# 控制台输出函数（用于用户交互）
 def cout(*args, **kwargs):
-    """纯用户交互输出，不加任何颜色/格式控制"""
     kwargs.setdefault('flush', True)
     print(*args, **kwargs)
 
 
-# 导入 MCP
 from app.mcp import get_mcp_manager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期管理"""
     logger.info("正在初始化 Agent 系统...")
 
-    # 初始化 MCP 管理器
     try:
         mcp_manager = get_mcp_manager(use_local=True)
 
-        # 注册内置工具
         from app.action.tools import discover_tools
         tools = discover_tools()
         for tool in tools:
@@ -81,7 +72,6 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    """创建 FastAPI 应用实例"""
     app = FastAPI(
         title="Agent API",
         description="AI Agent 系统 API 接口 (MCP 协议)",
@@ -91,7 +81,6 @@ def create_app() -> FastAPI:
         redoc_url="/redoc"
     )
 
-    # 配置 CORS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -100,11 +89,9 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # 注册 API 路由
     from app.api.routes import router
     app.include_router(router)
 
-    # MCP 健康检查端点
     @app.get("/mcp/health")
     async def mcp_health():
         from app.mcp import get_mcp_manager
@@ -115,22 +102,56 @@ def create_app() -> FastAPI:
             "tool_count": len(mcp_manager._tools)
         }
 
-    # 静态文件服务
+    # ========== 静态文件服务（关键修复） ==========
     web_dir = Path(__file__).parent / "web"
-    if web_dir.exists():
-        app.mount("/static", StaticFiles(directory=str(web_dir)), name="static")
 
-        from fastapi.responses import FileResponse
+    if web_dir.exists():
+        # 检查子目录是否存在，如果不存在则创建
+        css_dir = web_dir / "css"
+        js_dir = web_dir / "js"
+
+        if not css_dir.exists():
+            css_dir.mkdir(parents=True)
+            logger.warning(f"创建 CSS 目录: {css_dir}")
+
+        if not js_dir.exists():
+            js_dir.mkdir(parents=True)
+            logger.warning(f"创建 JS 目录: {js_dir}")
+
+        # 挂载静态文件目录
+        if css_dir.exists():
+            app.mount("/css", StaticFiles(directory=str(css_dir)), name="css")
+            logger.info(f"CSS 目录已挂载: {css_dir}")
+
+        if js_dir.exists():
+            app.mount("/js", StaticFiles(directory=str(js_dir)), name="js")
+            logger.info(f"JS 目录已挂载: {js_dir}")
+
+        # 挂载根静态目录
+        app.mount("/static", StaticFiles(directory=str(web_dir)), name="static")
 
         @app.get("/")
         async def serve_index():
             index_path = web_dir / "index.html"
             if index_path.exists():
                 return FileResponse(str(index_path))
-            return {"message": "Web frontend not found"}
+            return {"message": "index.html not found"}
+
+        # 处理其他 HTML 页面
+        @app.get("/{filename}.html")
+        async def serve_html(filename: str):
+            file_path = web_dir / f"{filename}.html"
+            if file_path.exists():
+                return FileResponse(str(file_path))
+            return {"message": f"{filename}.html not found"}
 
         logger.info(f"Web 前端已加载: {web_dir}")
+        logger.info(f"  访问地址: http://localhost:8002/")
+        logger.info(f"  CSS 路径: /css/")
+        logger.info(f"  JS 路径: /js/")
     else:
+        logger.warning(f"Web 前端目录不存在: {web_dir}")
+
         @app.get("/")
         async def root():
             return {
@@ -141,13 +162,10 @@ def create_app() -> FastAPI:
                 "mcp_health": "/mcp/health"
             }
 
-        logger.warning(f"Web 前端目录不存在: {web_dir}")
-
     return app
 
 
 def main():
-    """启动服务"""
     import argparse
 
     parser = argparse.ArgumentParser(description="启动 Agent API 服务")
@@ -161,7 +179,6 @@ def main():
 
     args = parser.parse_args()
 
-    # 如果需要控制台日志
     if args.console_log:
         logger.add(
             sys.stdout,
@@ -170,7 +187,6 @@ def main():
             colorize=True
         )
 
-    # 如果指定了独立 MCP 模式，需要单独启动
     if args.mcp_mode == "http":
         cout(f"\n⚠️  请单独运行: python run_mcp_server.py --mode http --port {args.mcp_port}")
     elif args.mcp_mode == "stdio":
