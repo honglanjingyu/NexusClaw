@@ -111,6 +111,66 @@ function setupEventListeners() {
             closeAllModals();
         }
     });
+    if (knowledgeSearchBtn) {
+    knowledgeSearchBtn.addEventListener('click', () => {
+        // 专家模式下不允许切换搜索按钮
+        if (isExpertMode) {
+            showToast('专家模式下，搜索将由 AI 自动决策', 'info');
+            return;
+        }
+
+        if (currentSearchMode === SearchMode.KNOWLEDGE) {
+            currentSearchMode = SearchMode.NONE;
+        } else {
+            currentSearchMode = SearchMode.KNOWLEDGE;
+            // 如果联网搜索是激活的，先关闭（二选一）
+            if (webSearchBtn && webSearchBtn.classList.contains('active')) {
+                webSearchBtn.classList.remove('active');
+            }
+        }
+        updateModeButtons();
+        saveModeSettings();
+        showToast(currentSearchMode === SearchMode.KNOWLEDGE ? '✅ 知识库搜索已开启，联网搜索已关闭' : '知识库搜索已关闭', 'info');
+    });
+}
+
+// 联网搜索按钮
+if (webSearchBtn) {
+    webSearchBtn.addEventListener('click', () => {
+        // 专家模式下不允许切换搜索按钮
+        if (isExpertMode) {
+            showToast('专家模式下，搜索将由 AI 自动决策', 'info');
+            return;
+        }
+
+        if (currentSearchMode === SearchMode.WEB) {
+            currentSearchMode = SearchMode.NONE;
+        } else {
+            currentSearchMode = SearchMode.WEB;
+            // 如果知识库搜索是激活的，先关闭（二选一）
+            if (knowledgeSearchBtn && knowledgeSearchBtn.classList.contains('active')) {
+                knowledgeSearchBtn.classList.remove('active');
+            }
+        }
+        updateModeButtons();
+        saveModeSettings();
+        showToast(currentSearchMode === SearchMode.WEB ? '🌐 联网搜索已开启，知识库搜索已关闭' : '联网搜索已关闭', 'info');
+    });
+}
+
+// 专家模式按钮
+if (expertModeBtn) {
+    expertModeBtn.addEventListener('click', () => {
+        isExpertMode = !isExpertMode;
+        updateModeButtons();
+        saveModeSettings();
+
+        if (isExpertMode) {
+            showToast('🧠 专家模式已开启，AI 将自主决定是否使用知识库和联网搜索', 'success');
+        } else {
+            showToast('专家模式已关闭，搜索模式恢复为手动选择', 'info');
+        }
+    });}
 }
 
 /**

@@ -381,7 +381,9 @@ async def chat_stream(
                 user_input=request.message,
                 session_id=session_id,
                 perception_context=perception_result.to_dict(),
-                available_tools=available_tools
+                available_tools=available_tools,
+                search_mode=request.search_mode,
+                is_expert=request.is_expert
             ):
                 event_type = event.get("type")
 
@@ -557,3 +559,24 @@ async def list_tools(agent: Agent = Depends(get_agent)):
         "success": True,
         "tools": agent.list_tools()
     }
+
+
+# app/api/routes.py 中添加
+
+@router.post("/admin/intent/reload")
+async def reload_intent_rules(
+        authorization: str = Header(None)
+):
+    """热重载意图路由规则（需要管理员权限）"""
+    from app.brain.intent_router import get_intent_router
+
+    # 验证管理员权限（可选）
+    # ...
+
+    router = get_intent_router()
+    success = router.reload_rules()
+
+    if success:
+        return {"success": True, "message": "意图路由规则已重新加载"}
+    else:
+        return {"success": False, "message": "重新加载失败"}

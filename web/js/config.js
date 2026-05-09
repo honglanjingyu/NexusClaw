@@ -11,6 +11,20 @@ let thinkingAnimationInterval = null;
 let hasReceivedFirstChunk = false;
 let nextMessageId = 0;
 
+// 搜索模式枚举
+const SearchMode = {
+    KNOWLEDGE: 'knowledge',  // 知识库搜索
+    WEB: 'web',              // 网络搜索
+    NONE: 'none'             // 不搜索
+};
+
+// 全局模式状态
+let currentSearchMode = SearchMode.NONE;  // 当前搜索模式
+let isExpertMode = false;                 // 是否专家模式
+
+// DOM 元素引用
+let knowledgeSearchBtn, webSearchBtn, expertModeBtn;
+
 // 从 URL 获取 session_id
 function getSessionIdFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -114,6 +128,83 @@ function initDomElements() {
     charCountSpan = document.getElementById('charCount');
     statusIcon = document.getElementById('statusIcon');
     statusText = document.getElementById('statusText');
+    knowledgeSearchBtn = document.getElementById('knowledgeSearchBtn');
+    webSearchBtn = document.getElementById('webSearchBtn');
+    expertModeBtn = document.getElementById('expertModeBtn');
+}
+
+// 保存模式设置到 localStorage
+function saveModeSettings() {
+    localStorage.setItem('search_mode', currentSearchMode);
+    localStorage.setItem('expert_mode', isExpertMode);
+}
+
+// 加载模式设置
+function loadModeSettings() {
+    const savedMode = localStorage.getItem('search_mode');
+    if (savedMode && Object.values(SearchMode).includes(savedMode)) {
+        currentSearchMode = savedMode;
+    }
+
+    const savedExpert = localStorage.getItem('expert_mode');
+    if (savedExpert !== null) {
+        isExpertMode = savedExpert === 'true';
+    }
+
+    // 更新按钮状态
+    updateModeButtons();
+}
+
+function updateModeButtons() {
+    if (knowledgeSearchBtn) {
+        if (currentSearchMode === SearchMode.KNOWLEDGE) {
+            knowledgeSearchBtn.classList.add('active');
+        } else {
+            knowledgeSearchBtn.classList.remove('active');
+        }
+        // 专家模式下禁用搜索按钮（视觉上半透明）
+        if (isExpertMode) {
+            knowledgeSearchBtn.style.opacity = '0.5';
+            knowledgeSearchBtn.style.cursor = 'not-allowed';
+        } else {
+            knowledgeSearchBtn.style.opacity = '1';
+            knowledgeSearchBtn.style.cursor = 'pointer';
+        }
+    }
+
+    if (webSearchBtn) {
+        if (currentSearchMode === SearchMode.WEB) {
+            webSearchBtn.classList.add('active');
+        } else {
+            webSearchBtn.classList.remove('active');
+        }
+        if (isExpertMode) {
+            webSearchBtn.style.opacity = '0.5';
+            webSearchBtn.style.cursor = 'not-allowed';
+        } else {
+            webSearchBtn.style.opacity = '1';
+            webSearchBtn.style.cursor = 'pointer';
+        }
+    }
+
+    if (expertModeBtn) {
+        if (isExpertMode) {
+            expertModeBtn.classList.add('active');
+        } else {
+            expertModeBtn.classList.remove('active');
+        }
+    }
+}
+
+// 获取当前请求的搜索模式（用于发送到后端）
+function getRequestSearchMode() {
+    if (isExpertMode) return 'none';  // 专家模式不使用搜索按钮
+    return currentSearchMode;
+}
+
+// 获取是否专家模式
+function getIsExpertMode() {
+    return isExpertMode;
 }
 
 function forceNewSession() {

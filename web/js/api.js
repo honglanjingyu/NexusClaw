@@ -495,10 +495,15 @@ async function sendMessageNormal(message) {
 /**
  * 流式发送消息
  */
+// web/js/api.js - 修改发送消息函数
+
+/**
+ * 流式发送消息（传递模式参数）
+ */
 async function sendMessageStream(message) {
     hasReceivedFirstChunk = false;
 
-    // 更新会话第一条消息缓存（如果是第一条消息）
+    // 更新会话第一条消息缓存
     if (chatHistory.length === 0 && message) {
         await updateSessionFirstMessage(currentSessionId, message);
     }
@@ -520,13 +525,21 @@ async function sendMessageStream(message) {
             ...getAuthHeaders()
         };
 
+        // 获取当前模式状态
+        const requestSearchMode = getRequestSearchMode();
+        const requestIsExpert = getIsExpertMode();
+
+        console.log('发送请求 - 搜索模式:', requestSearchMode, '专家模式:', requestIsExpert);
+
         const response = await fetch(`${API_BASE}/chat/stream`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
                 message: message,
                 session_id: currentSessionId,
-                stream: true
+                stream: true,
+                search_mode: requestSearchMode,  // 新增：搜索模式
+                is_expert: requestIsExpert       // 新增：是否专家模式
             })
         });
 
@@ -606,11 +619,10 @@ async function sendMessageStream(message) {
             replaceThinkingWithContent(thinkingId, '收到空响应，请稍后重试。');
         }
 
-        // 更新本地 chatHistory 用于显示（不保存到 localStorage）
+        // 更新本地 chatHistory
         if (!hasError && fullResponse && !fullResponse.startsWith('错误:')) {
             chatHistory.push({ role: 'user', content: message });
             chatHistory.push({ role: 'assistant', content: fullResponse });
-            // 只更新会话列表
             updateSessionList();
             updateHistoryList();
         }

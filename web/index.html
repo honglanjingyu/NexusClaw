@@ -1,3 +1,4 @@
+<!-- web/index.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -55,7 +56,6 @@
                     window.location.href = '/login.html';
                 } else {
                     console.log('登录验证通过，用户:', data.username);
-                    // 更新用户名显示
                     const userNameSpan = document.getElementById('userNameDisplay');
                     if (userNameSpan && data.username) {
                         userNameSpan.textContent = data.username;
@@ -64,7 +64,6 @@
             })
             .catch(err => {
                 console.error('验证请求失败:', err);
-                // 网络错误或验证失败时也跳转到登录页
                 localStorage.removeItem('agent_token');
                 localStorage.removeItem('agent_user_id');
                 localStorage.removeItem('agent_username');
@@ -187,6 +186,23 @@
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
+
+                    <!-- 模式按钮栏（类似 DeepSeek 样式） -->
+                    <div class="mode-bar">
+                        <button class="mode-btn" id="knowledgeSearchBtn" data-mode="knowledge">
+                            <i class="fas fa-database"></i>
+                            <span>知识库搜索</span>
+                        </button>
+                        <button class="mode-btn" id="webSearchBtn" data-mode="web">
+                            <i class="fas fa-globe"></i>
+                            <span>联网搜索</span>
+                        </button>
+                        <button class="mode-btn expert-mode" id="expertModeBtn" data-mode="expert">
+                            <i class="fas fa-brain"></i>
+                            <span>专家模式</span>
+                        </button>
+                    </div>
+
                     <div class="input-footer">
                         <span class="input-tip">
                             <i class="fas fa-microphone"></i> 支持流式响应

@@ -1,8 +1,9 @@
-// web/js/app.js - 完整修复版
+// web/js/app.js - 在 DOMContentLoaded 中添加
 
 document.addEventListener('DOMContentLoaded', async () => {
     initDomElements();
     loadSettings();
+    loadModeSettings();  // 确保这行存在，加载模式状态
 
     // 显示用户名
     const username = localStorage.getItem('agent_username');

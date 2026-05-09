@@ -11,6 +11,8 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="用户消息", min_length=1, max_length=10000)
     session_id: Optional[str] = Field(None, description="会话ID，不提供则创建新会话")
     stream: bool = Field(False, description="是否流式响应")
+    search_mode: str = Field("none", description="搜索模式: knowledge/web/none")  # 新增
+    is_expert: bool = Field(False, description="是否专家模式")  # 新增
 
 
 class KnowledgeAddRequest(BaseModel):
