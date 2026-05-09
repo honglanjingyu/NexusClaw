@@ -1,4 +1,61 @@
-// web/js/api.js - 完整修复版（只从 Redis 加载历史）
+// web/js/api.js - 完整修复版（添加认证头和会话权限验证）
+
+// ========== 认证相关 ==========
+
+/**
+ * 获取认证头
+ */
+function getAuthHeaders() {
+    const token = localStorage.getItem('agent_token');
+    if (token && token !== 'null' && token !== 'undefined') {
+        return { 'Authorization': `Bearer ${token}` };
+    }
+    return {};
+}
+
+/**
+ * 检查是否已登录
+ */
+function isLoggedIn() {
+    const token = localStorage.getItem('agent_token');
+    return token && token !== 'null' && token !== 'undefined';
+}
+
+/**
+ * 登出
+ */
+function logout() {
+    localStorage.removeItem('agent_token');
+    localStorage.removeItem('agent_user_id');
+    localStorage.removeItem('agent_username');
+    window.location.href = '/login.html';
+}
+
+/**
+ * 验证会话访问权限
+ */
+async function verifySessionAccess(sessionId) {
+    const token = localStorage.getItem('agent_token');
+    if (!token || token === 'null' || token === 'undefined') return true; // 未登录用户允许访问
+
+    try {
+        const response = await fetch(`${API_BASE}/auth/session/verify`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ session_id: sessionId })
+        });
+        const data = await response.json();
+        return data.authorized === true;
+    } catch (error) {
+        console.warn('验证会话权限失败:', error);
+        return false;
+    }
+}
+
+// ========== 会话管理 ==========
 
 /**
  * 验证会话是否存在
@@ -8,7 +65,8 @@ async function verifySessionExists(sessionId) {
 
     try {
         console.log('验证会话:', sessionId);
-        const response = await fetch(`${API_BASE}/session/${sessionId}/info`);
+        const headers = getAuthHeaders();
+        const response = await fetch(`${API_BASE}/session/${sessionId}/info`, { headers });
         if (response.ok) {
             const data = await response.json();
             const exists = data.success === true && data.info !== null;
@@ -57,7 +115,8 @@ async function loadSessionHistory(sessionId) {
 
     console.log('从 Redis 加载会话历史:', sessionId);
     try {
-        const response = await fetch(`${API_BASE}/session/${sessionId}/history?limit=100`);
+        const headers = getAuthHeaders();
+        const response = await fetch(`${API_BASE}/session/${sessionId}/history?limit=100`, { headers });
         if (response.ok) {
             const data = await response.json();
             if (data.success && data.messages) {
@@ -150,7 +209,8 @@ function renderSessionHistory(messages) {
 async function createNewSession() {
     try {
         console.log('创建新会话...');
-        const response = await fetch(`${API_BASE}/session/create?user_id=web_user`);
+        const headers = getAuthHeaders();
+        const response = await fetch(`${API_BASE}/session/create?user_id=web_user`, { headers });
         if (response.ok) {
             const data = await response.json();
             if (data.session_id) {
@@ -317,8 +377,9 @@ async function handleNewChat() {
     console.log('新建会话...');
 
     try {
+        const headers = getAuthHeaders();
         // 调用后端创建新会话
-        const response = await fetch(`${API_BASE}/session/create?user_id=web_user`);
+        const response = await fetch(`${API_BASE}/session/create?user_id=web_user`, { headers });
         if (response.ok) {
             const data = await response.json();
             if (data.session_id) {
@@ -393,9 +454,14 @@ async function sendMessageNormal(message) {
     const thinkingId = addThinkingMessage();
 
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+        };
+
         const response = await fetch(`${API_BASE}/chat`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({
                 message: message,
                 session_id: currentSessionId
@@ -449,9 +515,14 @@ async function sendMessageStream(message) {
     let hasError = false;
 
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+        };
+
         const response = await fetch(`${API_BASE}/chat/stream`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({
                 message: message,
                 session_id: currentSessionId,

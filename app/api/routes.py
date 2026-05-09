@@ -1,9 +1,9 @@
-# app/api/routes.py (修改版 - 添加会话历史接口)
+# app/api/routes.py - 完整修复版（添加用户认证和会话权限验证）
 
 import uuid
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query, Header
 from fastapi.responses import StreamingResponse
 from loguru import logger
 import json
@@ -14,64 +14,136 @@ from .models import (
     KnowledgeAddRequest, KnowledgeSearchRequest,
     KnowledgeAddResponse, KnowledgeSearchResponse,
     SessionCreateRequest, SessionResponse, StatusResponse, MemoryStatsResponse, HealthResponse,
-    SessionHistoryResponse, SessionInfoResponse  # 新增
+    SessionHistoryResponse, SessionInfoResponse
 )
 from .dependencies import get_agent, get_session_manager
 from app.core import Agent, SessionManager
+from app.db.database import get_db_manager
+from app.auth.jwt_utils import get_user_id_from_token
 
 router = APIRouter(prefix="/api/v1", tags=["Agent"])
 
 
-# ========== 新增：会话管理接口 ==========
-# app/api/routes.py - 修复 create_session 函数
+# ========== 认证和会话权限辅助函数 ==========
 
+async def verify_session_auth(
+    session_id: str,
+    authorization: Optional[str] = None
+) -> tuple[bool, Optional[int]]:
+    """
+    验证用户是否有权访问会话
+    Returns:
+        (is_authorized, user_id)
+    """
+    if not session_id:
+        return False, None
+
+    # 如果没有认证信息，允许访问（兼容未登录模式）
+    if not authorization:
+        logger.debug(f"未提供认证信息，允许访问会话: {session_id}")
+        return True, None
+
+    # 提取 token
+    if authorization.startswith("Bearer "):
+        token = authorization[7:]
+    else:
+        token = authorization
+
+    user_id = get_user_id_from_token(token)
+
+    if not user_id:
+        logger.warning(f"Token 无效，拒绝访问会话: {session_id}")
+        return False, None
+
+    # 验证会话访问权限
+    db = get_db_manager()
+    authorized = db.verify_session_access(user_id, session_id)
+
+    if not authorized:
+        logger.warning(f"用户 {user_id} 无权访问会话 {session_id}")
+        return False, user_id
+
+    return True, user_id
+
+
+async def associate_session_with_user(
+    user_id: int,
+    session_id: str
+) -> bool:
+    """将会话关联到用户"""
+    if not user_id:
+        return True  # 未登录用户不需要关联
+
+    db = get_db_manager()
+    return db.associate_session(user_id, session_id)
+
+
+# ========== 会话管理接口 ==========
+# app/api/routes.py - 第 214 行附近
 @router.get("/session/create")
 async def create_session(
-    user_id: str = Query("default", description="用户ID"),
+    user_id: str = Query("default", description="用户ID（兼容旧版）"),
+    authorization: Optional[str] = Header(None),
     agent: Agent = Depends(get_agent)
 ) -> SessionResponse:
-    """
-    创建新会话，返回 session_id
-
-    前端可在页面加载时调用此接口获取新 session_id 并更新 URL
-    """
     try:
-        # 检查 agent 是否已初始化且有 memory_manager
+        # 获取用户ID（从 token 中）
+        token_user_id = None
+        if authorization and authorization.startswith("Bearer "):
+            token = authorization[7:]
+            token_user_id = get_user_id_from_token(token)
+            if token_user_id:
+                logger.info(f"已登录用户创建会话: user_id={token_user_id}")
+
+        # 创建会话
         if agent._memory_manager and hasattr(agent._memory_manager, '_redis_memory'):
-            session_id = agent._memory_manager._redis_memory.get_or_create_session(user_id=user_id)
+            # 如果是已登录用户，使用 user_id=username，否则使用 default
+            redis_user_id = str(token_user_id) if token_user_id else user_id
+            session_id = agent._memory_manager._redis_memory.get_or_create_session(user_id=redis_user_id)
             agent._current_session_id = session_id
             agent._memory_manager.set_session(session_id)
-            logger.info(f"创建新会话: {session_id}, user_id={user_id}")
+            logger.info(f"创建新会话: {session_id}, user_id={redis_user_id}")
         else:
-            # 降级方案
             session_id = uuid.uuid4().hex[:16]
             logger.warning(f"记忆管理器未初始化，使用临时会话: {session_id}")
+
+        # 如果用户已登录，关联会话到数据库
+        if token_user_id:
+            await associate_session_with_user(token_user_id, session_id)
+            logger.info(f"会话 {session_id} 已关联到用户 {token_user_id}")
 
         return SessionResponse(
             session_id=session_id,
             created_at=datetime.now().isoformat(),
-            user_name=user_id
+            user_name=str(token_user_id) if token_user_id else user_id
         )
     except Exception as e:
         logger.error(f"创建会话失败: {e}")
         raise HTTPException(status_code=500, detail=f"创建会话失败: {str(e)}")
 
-
-# app/api/routes.py - 替换 get_session_info 函数
-
 @router.get("/session/{session_id}/info")
 async def get_session_info(
-        session_id: str,
-        agent: Agent = Depends(get_agent)
+    session_id: str,
+    authorization: Optional[str] = Header(None),
+    agent: Agent = Depends(get_agent)
 ) -> SessionInfoResponse:
-    """获取会话信息 - 用于验证会话是否存在"""
+    """获取会话信息 - 验证会话是否存在"""
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id不能为空")
+
+    # 验证权限
+    is_authorized, user_id = await verify_session_auth(session_id, authorization)
+    if not is_authorized:
+        return SessionInfoResponse(
+            success=False,
+            session_id=session_id,
+            info=None,
+            message="无权访问此会话"
+        )
 
     logger.info(f"get_session_info 调用: session_id={session_id}")
 
     try:
-        # 直接检查 Redis 会话是否存在
         if agent._memory_manager and hasattr(agent._memory_manager, '_redis_memory'):
             redis_memory = agent._memory_manager._redis_memory
             info = redis_memory.get_session_info(session_id)
@@ -106,17 +178,27 @@ async def get_session_info(
         raise HTTPException(status_code=500, detail=f"获取会话信息失败: {str(e)}")
 
 
-# app/api/routes.py - 修复 get_session_history
-
 @router.get("/session/{session_id}/history")
 async def get_session_history(
-        session_id: str,
-        limit: int = Query(50, ge=1, le=200),
-        agent: Agent = Depends(get_agent)
+    session_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    authorization: Optional[str] = Header(None),
+    agent: Agent = Depends(get_agent)
 ) -> SessionHistoryResponse:
     """获取会话的完整历史记录"""
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id不能为空")
+
+    # 验证权限
+    is_authorized, user_id = await verify_session_auth(session_id, authorization)
+    if not is_authorized:
+        return SessionHistoryResponse(
+            success=False,
+            session_id=session_id,
+            message_count=0,
+            messages=[],
+            error="无权访问此会话"
+        )
 
     logger.info(f"get_session_history: session_id={session_id}, limit={limit}")
 
@@ -151,15 +233,21 @@ async def get_session_history(
 @router.delete("/session/{session_id}")
 async def clear_session(
     session_id: str,
+    authorization: Optional[str] = Header(None),
     agent: Agent = Depends(get_agent)
 ):
     """清除指定会话的记忆"""
+    # 验证权限
+    is_authorized, user_id = await verify_session_auth(session_id, authorization)
+    if not is_authorized:
+        raise HTTPException(status_code=403, detail="无权访问此会话")
+
     if agent._memory_manager:
         agent._memory_manager.clear_session(session_id)
     return {"success": True, "message": f"会话 {session_id} 已清空"}
 
 
-# ========== 修改健康检查 ==========
+# ========== 健康检查接口 ==========
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check(agent: Agent = Depends(get_agent)):
@@ -176,15 +264,16 @@ async def ping():
     return {"message": "pong", "timestamp": datetime.now().isoformat()}
 
 
-# ========== 修改对话接口（支持从 URL 传递 session_id）==========
+# ========== 修改对话接口（支持权限验证） ==========
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
+    authorization: Optional[str] = Header(None),
     agent: Agent = Depends(get_agent),
     session_manager: SessionManager = Depends(get_session_manager)
 ):
-    """与 Agent 对话 - 支持 session_id"""
+    """与 Agent 对话 - 支持 session_id 和权限验证"""
     if not agent._initialized:
         return ChatResponse(
             success=False,
@@ -200,6 +289,22 @@ async def chat(
         session_id = session_manager.get_or_create(request.session_id)
     else:
         session_id = session_manager.get_or_create()
+
+    # 验证权限
+    is_authorized, user_id = await verify_session_auth(session_id, authorization)
+    if not is_authorized:
+        return ChatResponse(
+            success=False,
+            response="无权访问此会话",
+            session_id=session_id,
+            steps_executed=0,
+            elapsed_ms=0,
+            error="Unauthorized"
+        )
+
+    # 如果用户已登录且会话是新建的，关联会话
+    if user_id and request.session_id is None:
+        await associate_session_with_user(user_id, session_id)
 
     # 设置会话到记忆管理器
     if agent._memory_manager:
@@ -218,19 +323,17 @@ async def chat(
     )
 
 
-# app/api/routes.py - 修改 chat_stream 函数
-
 @router.post("/chat/stream")
 async def chat_stream(
-        request: ChatRequest,
-        agent: Agent = Depends(get_agent),
-        session_manager: SessionManager = Depends(get_session_manager)
+    request: ChatRequest,
+    authorization: Optional[str] = Header(None),
+    agent: Agent = Depends(get_agent),
+    session_manager: SessionManager = Depends(get_session_manager)
 ):
-    """流式对话接口 - 支持 session_id 和 URL 恢复"""
+    """流式对话接口 - 支持 session_id 和权限验证"""
     if not agent._initialized:
         async def error_gen():
             yield f"data: {json.dumps({'type': 'error', 'data': '系统正在初始化'})}\n\n"
-
         return StreamingResponse(error_gen(), media_type="text/event-stream")
 
     # 获取或创建会话
@@ -238,6 +341,17 @@ async def chat_stream(
         session_id = session_manager.get_or_create(request.session_id)
     else:
         session_id = session_manager.get_or_create()
+
+    # 验证权限
+    is_authorized, user_id = await verify_session_auth(session_id, authorization)
+    if not is_authorized:
+        async def unauthorized_gen():
+            yield f"data: {json.dumps({'type': 'error', 'data': '无权访问此会话'})}\n\n"
+        return StreamingResponse(unauthorized_gen(), media_type="text/event-stream")
+
+    # 如果用户已登录且会话是新建的，关联会话
+    if user_id and request.session_id is None:
+        await associate_session_with_user(user_id, session_id)
 
     if agent._memory_manager:
         agent._memory_manager.set_session(session_id)
@@ -264,10 +378,10 @@ async def chat_stream(
             full_response = ""
 
             async for event in agent._brain_manager.think_stream(
-                    user_input=request.message,
-                    session_id=session_id,
-                    perception_context=perception_result.to_dict(),
-                    available_tools=available_tools
+                user_input=request.message,
+                session_id=session_id,
+                perception_context=perception_result.to_dict(),
+                available_tools=available_tools
             ):
                 event_type = event.get("type")
 
@@ -304,10 +418,8 @@ async def chat_stream(
             # 发送结束标记
             yield f"data: {json.dumps({'type': 'end', 'session_id': session_id})}\n\n"
 
-            # ========== 关键修复：只保存一次消息，防止重复 ==========
-            # 检查是否已经保存过（避免重复）
+            # 保存消息到 Redis
             if full_response and agent._memory_manager:
-                # 获取最后一条用户消息，检查是否已经保存过
                 recent_messages = agent._memory_manager.get_recent_messages(2)
                 last_user_saved = None
                 for msg in recent_messages:
@@ -315,7 +427,6 @@ async def chat_stream(
                         last_user_saved = msg.get('content')
                         break
 
-                # 只有当最后一条用户消息不是当前消息时才保存
                 if last_user_saved != request.message:
                     agent._memory_manager.add_user_message(request.message)
                     agent._memory_manager.add_assistant_message(full_response)
@@ -323,9 +434,8 @@ async def chat_stream(
                 else:
                     logger.info(f"消息已存在，跳过重复保存")
 
-            # 感知模块只添加对话到短期记忆，不重复保存到 Redis
+            # 感知模块添加对话到短期记忆
             if agent._perception_manager:
-                # 检查是否已经添加过
                 agent._perception_manager.add_conversation_to_memory(request.message, full_response)
 
         except Exception as e:
@@ -337,7 +447,7 @@ async def chat_stream(
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 
-# ========== 其他接口保持不变 ==========
+# ========== 其他接口 ==========
 
 @router.post("/session", response_model=SessionResponse)
 async def create_session_old(
@@ -352,20 +462,6 @@ async def create_session_old(
         created_at=session_info.get("created_at").isoformat() if session_info.get("created_at") else None,
         user_name=session_info.get("user_name", request.user_name)
     )
-
-
-@router.delete("/session/{session_id}")
-async def clear_session_old(
-    session_id: str,
-    agent: Agent = Depends(get_agent)
-):
-    """清空指定会话的记忆"""
-    old_session = agent.get_session_id()
-    agent._current_session_id = session_id
-    agent.clear_session()
-    if old_session and old_session != session_id:
-        agent._current_session_id = old_session
-    return {"success": True, "message": f"会话 {session_id} 已清空"}
 
 
 @router.post("/session/{session_id}/new")

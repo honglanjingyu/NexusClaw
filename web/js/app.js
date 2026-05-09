@@ -4,6 +4,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDomElements();
     loadSettings();
 
+    // 显示用户名
+    const username = localStorage.getItem('agent_username');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    if (userNameDisplay && username) {
+        userNameDisplay.textContent = username;
+    } else if (userNameDisplay) {
+        userNameDisplay.textContent = '用户';
+    }
+
     // 初始化会话（会从 URL 或 localStorage 恢复）
     await initSession();
 

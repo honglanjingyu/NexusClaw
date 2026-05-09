@@ -11,6 +11,68 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- 登录检查脚本 - 必须在页面加载前执行 -->
+    <script>
+        (function() {
+            console.log('执行登录检查...');
+
+            // 获取 token
+            const token = localStorage.getItem('agent_token');
+            console.log('Token 是否存在:', !!token);
+
+            // 如果没有 token，立即跳转到登录页
+            if (!token || token === 'null' || token === 'undefined' || token === '') {
+                console.log('未找到 token，跳转到登录页面');
+                localStorage.removeItem('agent_token');
+                localStorage.removeItem('agent_user_id');
+                localStorage.removeItem('agent_username');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // 验证 token 是否有效
+            fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                console.log('验证响应状态:', res.status);
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('验证响应数据:', data);
+                if (!data.success) {
+                    console.log('Token 无效，跳转到登录页面');
+                    localStorage.removeItem('agent_token');
+                    localStorage.removeItem('agent_user_id');
+                    localStorage.removeItem('agent_username');
+                    window.location.href = '/login.html';
+                } else {
+                    console.log('登录验证通过，用户:', data.username);
+                    // 更新用户名显示
+                    const userNameSpan = document.getElementById('userNameDisplay');
+                    if (userNameSpan && data.username) {
+                        userNameSpan.textContent = data.username;
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('验证请求失败:', err);
+                // 网络错误或验证失败时也跳转到登录页
+                localStorage.removeItem('agent_token');
+                localStorage.removeItem('agent_user_id');
+                localStorage.removeItem('agent_username');
+                window.location.href = '/login.html';
+            });
+        })();
+    </script>
+
     <div class="app">
         <!-- 侧边栏 -->
         <aside class="sidebar" id="sidebar">
@@ -28,6 +90,17 @@
                 <button class="btn-new-chat" id="newChatBtn">
                     <i class="fas fa-plus"></i>
                     <span>新对话</span>
+                </button>
+            </div>
+
+            <!-- 用户信息区域 -->
+            <div class="sidebar-user" id="sidebarUser">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userNameDisplay">加载中...</span>
+                </div>
+                <button class="btn-logout" id="logoutBtn" title="退出登录">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
 

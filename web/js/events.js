@@ -26,6 +26,30 @@ function setupEventListeners() {
     if (statsBtn) statsBtn.addEventListener('click', openStatsModal);
     if (settingsBtn) settingsBtn.addEventListener('click', openSettingsModal);
 
+    // 登出按钮
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (confirm('确定要退出登录吗？')) {
+                // 清除本地存储
+                localStorage.removeItem('agent_token');
+                localStorage.removeItem('agent_user_id');
+                localStorage.removeItem('agent_username');
+                localStorage.removeItem('agent_current_session_id');
+                localStorage.removeItem('sessions');
+
+                // 清除所有会话相关的缓存
+                if (window.sessionFirstMessages) {
+                    window.sessionFirstMessages = {};
+                }
+
+                // 跳转到登录页
+                window.location.href = '/login.html';
+            }
+        });
+    }
+
     // 设置开关
     if (streamToggle) {
         streamToggle.addEventListener('change', (e) => {
@@ -73,6 +97,20 @@ function setupEventListeners() {
             }
         });
     });
+
+    // 点击模态框外部关闭（备用）
+    document.addEventListener('click', (e) => {
+        if (e.target.classList && e.target.classList.contains('modal')) {
+            e.target.classList.remove('active');
+        }
+    });
+
+    // ESC 键关闭模态框
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAllModals();
+        }
+    });
 }
 
 /**
@@ -96,6 +134,11 @@ function clearAllSessions() {
 
         // 清除当前会话
         clearSavedSession();
+
+        // 清除缓存
+        if (window.sessionFirstMessages) {
+            window.sessionFirstMessages = {};
+        }
 
         // 创建新会话
         handleNewChat();

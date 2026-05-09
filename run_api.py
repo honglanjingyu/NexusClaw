@@ -1,4 +1,4 @@
-# run_api.py - 完整修复版
+# run_api.py - 完整修复版（添加认证路由）
 
 import sys
 from pathlib import Path
@@ -89,8 +89,13 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # 注册业务路由
     from app.api.routes import router
     app.include_router(router)
+
+    # 注册认证路由
+    from app.api.auth_routes import router as auth_router
+    app.include_router(auth_router)
 
     @app.get("/mcp/health")
     async def mcp_health():
@@ -102,7 +107,7 @@ def create_app() -> FastAPI:
             "tool_count": len(mcp_manager._tools)
         }
 
-    # ========== 静态文件服务（关键修复） ==========
+    # ========== 静态文件服务 ==========
     web_dir = Path(__file__).parent / "web"
 
     if web_dir.exists():
@@ -132,10 +137,18 @@ def create_app() -> FastAPI:
 
         @app.get("/")
         async def serve_index():
+            # 检查用户是否已登录
             index_path = web_dir / "index.html"
             if index_path.exists():
                 return FileResponse(str(index_path))
             return {"message": "index.html not found"}
+
+        @app.get("/login.html")
+        async def serve_login():
+            login_path = web_dir / "login.html"
+            if login_path.exists():
+                return FileResponse(str(login_path))
+            return {"message": "login.html not found"}
 
         # 处理其他 HTML 页面
         @app.get("/{filename}.html")
@@ -147,6 +160,7 @@ def create_app() -> FastAPI:
 
         logger.info(f"Web 前端已加载: {web_dir}")
         logger.info(f"  访问地址: http://localhost:8002/")
+        logger.info(f"  登录地址: http://localhost:8002/login.html")
         logger.info(f"  CSS 路径: /css/")
         logger.info(f"  JS 路径: /js/")
     else:
@@ -159,7 +173,12 @@ def create_app() -> FastAPI:
                 "version": "1.0.0",
                 "docs": "/docs",
                 "health": "/api/v1/health",
-                "mcp_health": "/mcp/health"
+                "mcp_health": "/mcp/health",
+                "auth": {
+                    "register": "/api/auth/register",
+                    "login": "/api/auth/login",
+                    "verify": "/api/auth/verify"
+                }
             }
 
     return app
@@ -200,6 +219,7 @@ def main():
     cout(f"📍 地址: http://{args.host}:{args.port}")
     cout(f"📖 API 文档: http://{args.host}:{args.port}/docs")
     cout(f"🎨 Web 界面: http://{args.host}:{args.port}/")
+    cout(f"🔐 登录页面: http://{args.host}:{args.port}/login.html")
     cout(f"🔧 MCP 状态: http://{args.host}:{args.port}/mcp/health")
     cout(f"🛠️  MCP 模式: {args.mcp_mode}")
     cout(f"📁 日志目录: logs/")
