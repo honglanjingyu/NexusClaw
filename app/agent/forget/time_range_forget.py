@@ -5,7 +5,9 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from loguru import logger
+import json
 
+from .memory_eraser import MemoryEraser
 from .memory_eraser import get_memory_eraser
 
 
@@ -95,7 +97,6 @@ class TimeRangeForgetManager:
         match = re.search(r'忘掉[：:]\s*本周\s*[,，]\s*(.+)', user_input)
         if match:
             keyword = match.group(1).strip()
-            # 本周一
             start_time = now - timedelta(days=now.weekday())
             start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
             return (start_time, now, keyword)
@@ -114,7 +115,12 @@ class TimeRangeForgetManager:
             session_id: str,
             keyword: str,
             start_time: Optional[datetime] = None,
-            end_time: Optional[datetime] = None
+            end_time: Optional[datetime] = None,
+            include_working: bool = True,
+            include_short_term: bool = True,
+            include_redis: bool = True,
+            include_long_term: bool = True,
+            include_entity: bool = True
     ) -> dict:
         """
         按时间范围清除记忆
@@ -124,11 +130,19 @@ class TimeRangeForgetManager:
             keyword: 要遗忘的关键词
             start_time: 开始时间（包含）
             end_time: 结束时间（包含）
+            include_working: 是否清除工作记忆
+            include_short_term: 是否清除短期记忆
+            include_redis: 是否清除 Redis 记忆
+            include_long_term: 是否清除长期记忆
+            include_entity: 是否清除实体记忆
         """
         results = {
             "keyword": keyword,
             "time_range": f"{start_time} ~ {end_time}" if start_time and end_time else "所有时间",
+            "short_term_cleared": 0,
+            "working_cleared": 0,
             "redis_cleared": 0,
+            "long_term_cleared": 0,
             "entity_cleared": 0,
             "total_cleared": 0,
             "success": True,
@@ -138,75 +152,97 @@ class TimeRangeForgetManager:
         logger.info(f"[会话 {session_id}] 开始时间范围遗忘: keyword='{keyword}', start={start_time}, end={end_time}")
 
         try:
-            # 获取 Redis 管理器
-            from app.agent.memory import get_redis_memory_manager
-            redis = get_redis_memory_manager()
+            # 清除短期记忆（不受时间限制）
+            if include_short_term:
+                results["short_term_cleared"] = await self._eraser.clear_short_term_memory(keyword, session_id)
 
-            if redis:
-                # 获取会话历史
-                history = redis.get_session_history(session_id, limit=500)
+            # 清除工作记忆（不受时间限制）
+            if include_working:
+                results["working_cleared"] = await self._eraser.clear_working_memory(keyword, session_id)
 
-                if history:
-                    keep_messages = []
-                    for msg in history:
-                        content = msg.get("content", "")
-                        timestamp = msg.get("created_at")
+            # 清除实体记忆（不受时间限制）
+            if include_entity:
+                results["entity_cleared"] = await self._eraser.clear_entity_memory(keyword, session_id)
 
-                        # 解析时间戳
-                        msg_time = None
-                        if timestamp:
-                            try:
-                                if isinstance(timestamp, (int, float)):
-                                    msg_time = datetime.fromtimestamp(timestamp)
-                                elif isinstance(timestamp, str):
-                                    msg_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-                            except:
-                                pass
+            # 获取 Redis 管理器进行时间范围过滤
+            if include_redis:
+                redis = self._eraser._get_redis_memory()
+                if redis:
+                    history = redis.get_session_history(session_id, limit=500)
 
-                        # 判断是否应该保留
-                        should_keep = True
+                    if history:
+                        keep_messages = []
+                        for msg in history:
+                            content = msg.get("content", "")
+                            timestamp = msg.get("created_at")
+                            msg_time = None
 
-                        # 关键词匹配
-                        if keyword.lower() in content.lower():
-                            # 时间范围过滤
-                            if start_time and msg_time and msg_time < start_time:
-                                should_keep = True  # 不在时间范围内，保留
-                            elif end_time and msg_time and msg_time > end_time:
-                                should_keep = True  # 不在时间范围内，保留
-                            else:
-                                should_keep = False  # 在时间范围内，删除
-                                results["redis_cleared"] += 1
-                                logger.info(f"[会话 {session_id}] 删除消息: {content[:50]}... (时间: {msg_time})")
-                        else:
+                            # 解析时间戳
+                            if timestamp:
+                                try:
+                                    if isinstance(timestamp, (int, float)):
+                                        msg_time = datetime.fromtimestamp(timestamp)
+                                    elif isinstance(timestamp, str):
+                                        msg_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                                except:
+                                    pass
+
+                            # 判断是否应该保留
                             should_keep = True
 
-                        if should_keep:
-                            keep_messages.append(msg)
+                            if keyword.lower() in content.lower():
+                                # 时间范围过滤
+                                if start_time and msg_time and msg_time < start_time:
+                                    should_keep = True
+                                elif end_time and msg_time and msg_time > end_time:
+                                    should_keep = True
+                                else:
+                                    should_keep = False
+                                    results["redis_cleared"] += 1
+                                    logger.info(f"[会话 {session_id}] 删除消息: {content[:50]}...")
 
-                    if results["redis_cleared"] > 0:
-                        # 重建 Redis 中的消息列表
-                        key = redis._get_session_key(session_id)
-                        redis.redis_client.delete(key)
+                            if should_keep:
+                                keep_messages.append(msg)
 
-                        import json
-                        for msg in keep_messages:
-                            redis.redis_client.rpush(key, json.dumps(msg, ensure_ascii=False))
+                        if results["redis_cleared"] > 0:
+                            # 重建 Redis 消息列表
+                            key = redis._get_session_key(session_id)
+                            redis.redis_client.delete(key)
 
-                        # 更新消息计数
-                        meta_key = redis._get_meta_key(session_id)
-                        redis.redis_client.hset(meta_key, "message_count", len(keep_messages))
+                            for msg in keep_messages:
+                                redis.redis_client.rpush(key, json.dumps(msg, ensure_ascii=False))
 
-                        logger.info(f"[会话 {session_id}] Redis 记忆中删除了 {results['redis_cleared']} 条消息")
+                            meta_key = redis._get_meta_key(session_id)
+                            redis.redis_client.hset(meta_key, "message_count", len(keep_messages))
 
-            # 清除实体记忆（不受时间限制，因为实体记忆没有时间戳）
-            results["entity_cleared"] = await self._eraser.clear_entity_memory(keyword, session_id)
+                            logger.info(f"[会话 {session_id}] 删除 {results['redis_cleared']} 条消息")
 
-            results["total_cleared"] = results["redis_cleared"] + results["entity_cleared"]
+            # 清除长期记忆（不受时间限制）
+            if include_long_term:
+                results["long_term_cleared"] = await self._eraser.clear_long_term_memory(keyword, session_id)
+
+            results["total_cleared"] = (
+                results["short_term_cleared"] +
+                results["working_cleared"] +
+                results["redis_cleared"] +
+                results["long_term_cleared"] +
+                results["entity_cleared"]
+            )
 
             if results["total_cleared"] > 0:
-                results["message"] = f"已清除 {results['total_cleared']} 条关于「{keyword}」的记忆"
+                parts = []
+                if results["short_term_cleared"] > 0:
+                    parts.append(f"短期记忆 {results['short_term_cleared']} 条")
+                if results["working_cleared"] > 0:
+                    parts.append(f"工作记忆 {results['working_cleared']} 条")
                 if results["redis_cleared"] > 0:
-                    results["message"] += f"（其中 {results['redis_cleared']} 条来自指定时间范围）"
+                    parts.append(f"会话记忆 {results['redis_cleared']} 条")
+                if results["long_term_cleared"] > 0:
+                    parts.append(f"长期记忆 {results['long_term_cleared']} 条")
+                if results["entity_cleared"] > 0:
+                    parts.append(f"实体记忆 {results['entity_cleared']} 条")
+
+                results["message"] = f"已清除 {', '.join(parts)}"
             else:
                 results["message"] = f"📭 没有找到关于「{keyword}」的记忆"
 

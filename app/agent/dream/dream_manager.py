@@ -241,27 +241,34 @@ class DreamManager:
             logger.error(f"获取会话历史失败 {session_id}: {e}")
             return []
 
+    # 修改 query_memories 方法
+
     async def query_memories(
             self,
             query: str,
             entity_type: Optional[str] = None,
-            min_importance: float = 0.3,
+            min_importance: float = 0.2,  # 降低阈值，让更多记忆被召回
             limit: int = 10
     ) -> List[EntityMemory]:
         """
-        查询实体记忆（供 Agent 调用）
+        查询实体记忆（使用混合检索）
         """
-        from .models import MemoryQuery, EntityType
+        # 使用混合检索
+        results = await self._store.hybrid_search(query, limit=limit, min_similarity=0.25)
 
-        query_obj = MemoryQuery(
-            query=query,
-            entity_type=EntityType(entity_type) if entity_type else None,
-            min_importance=min_importance,
-            limit=limit
-        )
+        # 按类型过滤
+        if entity_type:
+            results = [r for r in results if r.entity_type.value == entity_type]
 
-        results = self._store.query(query_obj)
+        # 按重要性过滤
+        results = [r for r in results if r.importance_score >= min_importance]
+
         logger.info(f"记忆查询: '{query}' -> {len(results)} 条结果")
+
+        # 打印匹配详情
+        for r in results:
+            logger.debug(f"  - [{r.entity_type.value}] {r.title[:50]} (重要性: {r.importance_score})")
+
         return results
 
     def get_memories_by_type(self, entity_type: str) -> List[EntityMemory]:

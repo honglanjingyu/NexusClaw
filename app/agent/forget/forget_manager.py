@@ -5,14 +5,25 @@ import re
 from typing import Optional
 from loguru import logger
 
-from .memory_eraser import get_memory_eraser, MemoryEraser
+from .memory_eraser import MemoryEraser
 
 
 class ForgetManager:
-    """遗忘管理器"""
+    """遗忘管理器 - 彻底清除记忆"""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
 
     def __init__(self):
-        self._eraser: MemoryEraser = get_memory_eraser()
+        if self._initialized:
+            return
+        self._eraser: MemoryEraser = MemoryEraser()
+        self._initialized = True
         logger.info("ForgetManager 初始化完成")
 
     def is_forget_request(self, user_input: str) -> bool:
@@ -23,6 +34,8 @@ class ForgetManager:
             r'遗忘[：:]',
             r'清除记忆[：:]',
             r'删除记忆[：:]',
+            r'忘掉\s+',
+            r'忘记\s+',
         ]
         for pattern in patterns:
             if re.search(pattern, user_input):
@@ -46,20 +59,9 @@ class ForgetManager:
         result = await self._eraser.forget(keyword, session_id)
 
         if result["success"]:
-            parts = []
-            if result["short_term_cleared"] > 0:
-                parts.append(f"短期记忆 {result['short_term_cleared']} 条")
-            if result["redis_cleared"] > 0:
-                parts.append(f"会话记忆 {result['redis_cleared']} 条")
-            if result["entity_cleared"] > 0:
-                parts.append(f"实体记忆 {result['entity_cleared']} 条")
-
-            if parts:
-                return f"🧹 已遗忘关于「{keyword}」的记忆：{', '.join(parts)}"
-            else:
-                return f"📭 没有找到关于「{keyword}」的记忆"
+            return f"🧹 {result['message']}"
         else:
-            return f"❌ 遗忘失败: {result['message']}"
+            return f"❌ {result['message']}"
 
 
 # 全局单例
@@ -67,6 +69,7 @@ _forget_manager: Optional[ForgetManager] = None
 
 
 def get_forget_manager() -> ForgetManager:
+    """获取遗忘管理器单例"""
     global _forget_manager
     if _forget_manager is None:
         _forget_manager = ForgetManager()

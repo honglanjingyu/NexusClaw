@@ -218,19 +218,28 @@ class BrainManager:
 
         # 历史查询意图：快速响应
         if intent_result.intent == IntentType.HISTORY:
-            logger.info(f"[会话 {session_id}] 历史查询意图，使用快速响应模式")
+            logger.info(f"[会话 {session_id}] 历史查询意图，使用实体记忆检索")
 
-            yield {"type": "status", "stage": "fast_response", "message": "正在查询历史记录..."}
+            yield {"type": "status", "stage": "entity_memory", "message": "正在回忆之前的对话..."}
             yield {"type": "response_start", "stage": "response_generating"}
 
-            async for chunk in self._fast_response(user_input, perception_context, session_id):
+            # 调用实体记忆查询工具
+            memory_result = await self._query_entity_memory(user_input, session_id)
+
+            # 如果有记忆，基于记忆回答；否则直接回答
+            if memory_result and "没有找到" not in memory_result:
+                prompt = f"用户问：{user_input}\n\n从记忆中检索到的信息：\n{memory_result}\n\n请基于这些记忆回答用户的问题。"
+            else:
+                prompt = f"用户问：{user_input}\n\n没有找到相关的历史记忆，请诚实告知用户还没有相关记录。"
+
+            async for chunk in self._generate_with_context(user_input, prompt, session_id):
                 if chunk:
                     yield {"type": "response_chunk", "data": chunk}
 
             yield {"type": "response_end", "stage": "response_complete"}
             yield {"type": "complete", "stage": "completed", "summary": {
-                "mode": "history",
-                "intent": intent_result.intent.value
+                "mode": "history_with_memory",
+                "has_memory": memory_result and "没有找到" not in memory_result
             }}
             return
 
@@ -254,6 +263,22 @@ class BrainManager:
             yield event
 
         logger.info(f"[会话 {session_id}] 大脑思考完成（流式）")
+
+    async def _query_entity_memory(self, query: str, session_id: str) -> Optional[str]:
+        """查询实体记忆"""
+        try:
+            result = await self.action_manager.execute_tool_call(
+                tool_name="query_entity_memory",
+                tool_input={"query": query, "limit": 10},
+                session_id=session_id
+            )
+            logger.info(f"[会话 {session_id}] 实体记忆查询结果: {result[:100] if result else 'None'}...")
+            return result
+        except Exception as e:
+            logger.error(f"[会话 {session_id}] 实体记忆查询失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
     async def _fast_response(
             self,
